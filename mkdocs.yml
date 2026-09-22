@@ -1,0 +1,26 @@
+site_name: echo-guard
+site_description: guard-core-go security middleware for Echo
+site_author: Renn F
+repo_url: https://github.com/rennf93/echo-guard
+repo_name: rennf93/echo-guard
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: deep purple
+      accent: amber
+  features:
+    - content.code.copy
+    - navigation.sections
+
+markdown_extensions:
+  - admonition
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - tables
+
+nav:
+  - Home: index.md
+  - Usage: usage.md
+  - Configuration: configuration.md

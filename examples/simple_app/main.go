@@ -20,7 +20,7 @@ import (
 	echolib "github.com/labstack/echo/v4"
 	echomiddleware "github.com/labstack/echo/v4/middleware"
 	guardecho "github.com/rennf93/echo-guard"
-	guardcore "github.com/rennf93/guard-core-go/guardcore"
+	guardcore "github.com/rennf93/guard-core-go/v4/guardcore"
 )
 
 func main() {

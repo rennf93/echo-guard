@@ -82,6 +82,8 @@ There is no Makefile. Every command below comes from the CI workflows or the REA
 | `go test ./...` | Unit tests (no Redis needed; `middleware_test.go` disables Redis) | `.github/workflows/ci.yml` step "go test (unit)" |
 | `REDIS_HOST=127.0.0.1 go test -tags integration ./...` | Unit plus Redis-backed integration tests | `.github/workflows/ci.yml` step "go test (integration, redis)", README.md |
 | `go install golang.org/x/vuln/cmd/govulncheck@latest && govulncheck ./...` | Vulnerability scan | `.github/workflows/ci.yml` and `scheduled-lint.yml` |
+| `docker compose -f examples/simple_app/docker-compose.yml up --build -d --wait` | Local live smoke of the guarded example app (assertions in `.github/workflows/live-smoke.yml`) | `.github/workflows/live-smoke.yml` |
+| `mkdocs build --strict` | Build the MkDocs site (docs.yml does the same before gh-deploy) | `.github/workflows/docs.yml` |
 
 CI runs the test job on a Go matrix of `1.25.x` and `1.26.x` (fail-fast disabled) with `GOTOOLCHAIN: auto`, plus a separate `govulncheck` job on stable Go. The integration step runs against a `redis:7-alpine` service container on port 6379 with `REDIS_HOST=127.0.0.1`.
 
@@ -96,11 +98,28 @@ CI runs the test job on a Go matrix of `1.25.x` and `1.26.x` (fail-fast disabled
 ├── go.mod / go.sum      # module github.com/rennf93/echo-guard, requires echo v4.15.4 and guard-core-go v0.1.0
 ├── README.md            # usage, options, integration test instructions
 ├── LICENSE              # MIT
+├── mkdocs.yml           # MkDocs site config (material theme; nav: Home/Usage/Configuration)
+├── docs/                # MkDocs site source: index.md, usage.md, configuration.md
+├── examples/            # example apps inside the root module (see examples/*/README.md)
+│   ├── simple_app/      # minimal guarded echo server: main.go, Dockerfile, docker-compose.yml (app + redis)
+│   └── advanced_app/    # production-style: cmd/server, internal/config, internal/routes, Dockerfile, docker-compose.yml
 └── .github/
     ├── workflows/ci.yml           # push/PR: gofmt, vet, unit, integration, govulncheck
     ├── workflows/release.yml      # tag push gate: same tests, plus module tag consumable check
     ├── workflows/scheduled-lint.yml  # weekly cron vet + govulncheck
     ├── workflows/code-ql.yml      # CodeQL go analysis on push/PR/weekly
+    ├── workflows/live-smoke.yml   # dockerized smoke of both example apps (push/PR to master)
+    ├── workflows/issue-link.yml   # PR must close an open issue (or carry no-issue)
+    ├── workflows/summary.yml      # on-demand AI issue summaries via the needs-summary label
+    ├── workflows/sync-labels.yml  # applies .github/labels.yml on change
+    ├── workflows/greetings.yml    # first-time contributor welcome messages
+    ├── workflows/labeler.yml      # labels PRs by changed files (.github/labeler.yml)
+    ├── workflows/stale.yml        # daily stale sweep for issues and PRs
+    ├── workflows/docs.yml              # mkdocs strict build + gh-pages deploy on docs pushes (master)
+    ├── workflows/container-release.yml # publishes the advanced_app demo image to ghcr.io
+    ├── workflows/upstream-drift.yml    # daily adapter suite against guard-core-go@master via replace
+    ├── labeler.yml                # labeler path rules
+    ├── labels.yml                 # label inventory applied by sync-labels
     └── dependabot.yml             # weekly gomod and github-actions updates
 ```
 
@@ -110,7 +129,7 @@ CI runs the test job on a Go matrix of `1.25.x` and `1.26.x` (fail-fast disabled
 - `github.com/rennf93/guard-core-go v0.1.0` (direct require in `go.mod`), providing `guardcore.Engine`, `guardcore.Request`, `guardcore.Response`, `guardcore.SecurityConfig`.
 - `github.com/labstack/echo/v4 v4.15.4` (direct require in `go.mod`), providing `echo.MiddlewareFunc` and `echo.Context` for the bridging surface.
 - Redis 7 for integration tests (CI service container `redis:7-alpine`); runtime Redis usage is a guard-core-go concern, not this adapter's.
-- GitHub Actions: CI on push and pull_request, Release Gate on `v*` tag push, weekly Scheduled Lint, CodeQL (go), Dependabot for gomod and actions, all with minimal permissions and pinned action SHAs.
+- GitHub Actions: CI on push and pull_request, Release Gate on `v*` tag push, weekly Scheduled Lint, CodeQL (go), dockerized Live Smoke of the example apps on push/PR to master, MkDocs docs deploy to GitHub Pages on docs pushes to master, demo container publishing to ghcr.io on releases and examples changes, daily upstream drift tests against guard-core-go@master, issue-link, greetings, labeler, stale, summary, and label sync; Dependabot for gomod and actions. All workflows use minimal permissions and pinned action SHAs.
 
 ## Testing Guidelines
 

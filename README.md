@@ -2,12 +2,14 @@
 
 Echo middleware adapter for [guard-core-go](https://github.com/rennf93/guard-core-go). Translates `echo.Context` into the guardcore request surface, runs the engine, and translates verdicts to exact Echo responses (status, headers, body, then stop the chain). Works with any `echo.Echo` or `echo.Group` chain via `e.Use`.
 
+Docs: https://rennf93.github.io/echo-guard/
+
 ## Install
 
 The adapter has no release tag yet; pin a commit (or track `main`) until the first tag is published:
 
 ```
-go get github.com/rennf93/echo-guard@main github.com/rennf93/guard-core-go/v4@v4.0.4
+go get github.com/rennf93/echo-guard@v1.0.0 github.com/rennf93/guard-core-go/v4@v4.0.4
 ```
 
 The package name is `echo`, which collides with `github.com/labstack/echo/v4` (also package `echo`), so import the adapter with an explicit alias such as `guardecho`.

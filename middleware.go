@@ -59,6 +59,12 @@ func (m *middleware) wrap(next echolib.HandlerFunc) echolib.HandlerFunc {
 			applyResponse(c, verdict)
 			return nil
 		}
+		// Security headers on the pass-through path: the engine computes the
+		// set (blocked verdicts already carry it), the adapter applies it
+		// before the handler writes its response.
+		for name, value := range m.engine.ResponseHeaders() {
+			c.Response().Header().Set(name, value)
+		}
 		return next(c)
 	}
 }

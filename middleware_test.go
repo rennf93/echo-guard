@@ -116,14 +116,10 @@ func TestMiddlewareBlocksBannedIPExactly(t *testing.T) {
 	if p.called {
 		t.Fatal("blocked request must not reach the handler")
 	}
-	// Lockstep window with the engine: guard-core-go v4.1.0
-	// (rennf93/guard-core-go#22) makes blocked responses carry the engine's
-	// default security headers. Until the adapter's engine floor bumps to
-	// v4.1.0, this suite must stay green on both engines, so the headers stay
-	// optional here: absence means the pre-4.1.0 engine, presence must be
-	// exactly the engine's default set, translated verbatim (the adapter adds
-	// nothing and strips nothing). Tighten to require the headers at the
-	// v4.1.0 floor bump.
+	// The guard-core-go v4.1.0 floor makes blocked responses carry the
+	// engine's default security headers, so the adapter must translate
+	// exactly that set: every header present, verbatim, and nothing beyond
+	// it (the adapter adds nothing and strips nothing).
 	engineDefaultSecurityHeaders := map[string]string{
 		"X-Content-Type-Options":            "nosniff",
 		"X-Frame-Options":                   "SAMEORIGIN",
@@ -137,21 +133,16 @@ func TestMiddlewareBlocksBannedIPExactly(t *testing.T) {
 		"Cross-Origin-Resource-Policy":      "same-origin",
 		"Strict-Transport-Security":         "max-age=31536000; includeSubDomains",
 	}
-	present := 0
 	for name, want := range engineDefaultSecurityHeaders {
 		values, ok := rec.Header()[http.CanonicalHeaderKey(name)]
 		if !ok {
-			continue
+			t.Fatalf("blocked response must carry the engine default security header %s, got %v", name, rec.Header())
 		}
-		present++
 		if len(values) != 1 || values[0] != want {
 			t.Fatalf("blocked response security header %s = %v, want [%q] verbatim", name, values, want)
 		}
 	}
-	if present != 0 && present != len(engineDefaultSecurityHeaders) {
-		t.Fatalf("blocked response must carry none or all of the engine default security headers, got %d of %d: %v", present, len(engineDefaultSecurityHeaders), rec.Header())
-	}
-	if len(rec.Header()) != present {
+	if len(rec.Header()) != len(engineDefaultSecurityHeaders) {
 		t.Fatalf("verdict headers must translate exactly, nothing beyond the engine default security headers, got %v", rec.Header())
 	}
 }

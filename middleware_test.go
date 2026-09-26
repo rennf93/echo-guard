@@ -94,8 +94,57 @@ func TestMiddlewareAllowsRequestUnmutated(t *testing.T) {
 	if p.method != "GET" || p.path != "/api/users" || p.rawQuery != "v=1" {
 		t.Fatalf("handler must see the original request, got %s %s?%s", p.method, p.path, p.rawQuery)
 	}
+}
+
+// Security headers land on every pass-through response, applied by the
+// adapter from the engine's ResponseHeaders() set.
+func TestMiddlewareAppliesSecurityHeadersOnPass(t *testing.T) {
+	guard, engine := newTestMiddleware(t, nil)
+	want := engine.ResponseHeaders()
+	if len(want) == 0 {
+		t.Fatal("default config must produce security headers")
+	}
+	r := httptest.NewRequest("GET", "/api/users", nil)
+	rec, p := serve(t, guard, r)
+	if rec.Code != 200 || !p.called {
+		t.Fatalf("clean request must pass, got %d called=%v", rec.Code, p.called)
+	}
+	for name, value := range want {
+		if got := rec.Header().Get(name); got != value {
+			t.Fatalf("security header %s = %q, want %q", name, got, value)
+		}
+	}
+	if len(p.headers) != len(want) {
+		t.Fatalf("handler must see exactly the security headers, got %d want %d", len(p.headers), len(want))
+	}
+
+	// Disabled security headers restore the header-free pass.
+	disabled, _ := newTestMiddleware(t, func(c *guardcore.SecurityConfig) {
+		c.SecurityHeaders.Enabled = false
+	})
+	rec, p = serve(t, disabled, httptest.NewRequest("GET", "/api/users", nil))
+	if rec.Code != 200 || !p.called {
+		t.Fatalf("disabled-headers request must pass, got %d called=%v", rec.Code, p.called)
+	}
 	if len(p.headers) != 0 {
-		t.Fatalf("adapter must not add headers on pass, got %v", p.headers)
+		t.Fatalf("disabled security headers must add nothing on pass, got %v", p.headers)
+	}
+}
+
+// Config overrides and custom headers flow through the adapter untouched.
+func TestMiddlewareSecurityHeadersHonorsConfig(t *testing.T) {
+	guard, engine := newTestMiddleware(t, func(c *guardcore.SecurityConfig) {
+		c.SecurityHeaders.FrameOptions = "DENY"
+		c.SecurityHeaders.Custom = map[string]string{"X-Request-Realm": "edge"}
+	})
+	want := engine.ResponseHeaders()
+	r := httptest.NewRequest("GET", "/api", nil)
+	rec, _ := serve(t, guard, r)
+	if rec.Header().Get("X-Frame-Options") != "DENY" || rec.Header().Get("X-Request-Realm") != "edge" {
+		t.Fatalf("overrides and custom headers must reach the response, got %v", rec.Header())
+	}
+	if len(rec.Header()) != len(want) {
+		t.Fatalf("response must carry exactly the engine set, got %d want %d", len(rec.Header()), len(want))
 	}
 }
 

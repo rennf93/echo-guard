@@ -3,6 +3,19 @@ Release Notes
 
 ___
 
+v1.0.1 (2026-09-26)
+-------------------
+
+guard-core-go v4.1.0 floor bump
+-------------------------------
+
+### Changed
+
+- **Raised the engine floor to `github.com/rennf93/guard-core-go/v4 v4.1.0`.** The engine now attaches its default security headers to blocked responses, and the adapter translates that header set verbatim alongside the verdict status and body. The floor also carries the engine's per-route IP allow/block lists, `exempt_ips`, geo country blocking, and CORS support.
+- **The suite now requires the engine's security headers on blocked responses.** The `TestMiddlewareBlocksBannedIPExactly` lockstep window (headers optional while the adapter floor lagged the engine) is closed: a blocked response must carry exactly the engine's default security header set, verbatim, with nothing added and nothing stripped.
+
+___
+
 v1.0.0 (2026-09-24)
 -------------------
 
